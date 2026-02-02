@@ -1,0 +1,34 @@
+import {Resend} from 'resend';
+import { getForgotPasswordHtml } from '../emails/getForgotPasswordHtml.js';
+import { getWelcomeEmailHtml } from '../emails/getWelcomeEmailHtml.js';
+import { getGoogleWelcomeEmailHtml } from '../emails/getGoogleWelcomeEmailHtml.js';
+
+const resend = new Resend("re_gpjPgeyn_MA4ZiEaU8diwy9E6eEt9CdeX");
+
+export const sendEmail = async(name="", email="", code="", subject="", password = null) => {
+  let html;
+  
+  if (subject === 'Reset Your Password') {
+    html = getForgotPasswordHtml(name, code);
+  } 
+  else if (subject === 'Welcome to CodeSaga - Your Account Details') {
+    html = getGoogleWelcomeEmailHtml(name, password);
+  }
+  else {
+    html = getWelcomeEmailHtml(name);
+  }
+
+  const { data, error } = await resend.emails.send({
+    from: 'CodeSaga <support@codesaga.live>',
+    to: [email],
+    subject: subject,
+    html: html
+  });
+
+  if (error) {
+    return console.error({ error });
+  }
+
+  console.log({ data });
+}
+
