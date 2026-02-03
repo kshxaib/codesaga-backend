@@ -1,19 +1,8 @@
-<<<<<<< HEAD
+
 generator client {
   provider      = "prisma-client-js"
   output        = "../src/generated/prisma"
   binaryTargets = ["native", "windows", "debian-openssl-3.0.x"]
-=======
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
-generator client {
-  provider = "prisma-client-js"
-  output   = "../src/generated/prisma"
->>>>>>> b8e1e5f (models and auth completed)
 }
 
 datasource db {
@@ -24,10 +13,7 @@ datasource db {
 enum UserRole {
   ADMIN
   USER
-<<<<<<< HEAD
   PRO
-=======
->>>>>>> b8e1e5f (models and auth completed)
 }
 
 enum Difficulty {
@@ -36,7 +22,6 @@ enum Difficulty {
   HARD
 }
 
-<<<<<<< HEAD
 enum ReportReason {
   INCORRECT_TEST_CASES
   POOR_DESCRIPTION
@@ -109,41 +94,10 @@ model Problem {
 
   likes    Int @default(0)
   dislikes Int @default(0)
-=======
-model User {
-  id  String @id @default(uuid())
-  name String?
-  email String @unique
-  image String?
-  role UserRole @default(USER)
-  password String
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  problems Problem[]
-} 
-
-model Problem {
-  id String @id @default(uuid())
-  title String
-  description String
-  difficulty Difficulty
-  tags String[]
-  userId String
-  examples Json
-  constraints String
-  hints String?
-  editorial String?
-  testcases Json
-  codeSnippets Json
-  refrenceSolutions Json
->>>>>>> b8e1e5f (models and auth completed)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-<<<<<<< HEAD
   user               User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   submission         Submission[]
   solvedBy           ProblemSolved[]
@@ -425,7 +379,4 @@ model DevLogReaction {
   devLog DevLog @relation(fields: [devLogId], references: [id], onDelete: Cascade)
 
   @@unique([devLogId, userId, type])
-=======
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
->>>>>>> b8e1e5f (models and auth completed)
 }

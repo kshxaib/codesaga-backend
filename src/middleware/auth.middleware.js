@@ -1,56 +1,35 @@
+
 import jwt from 'jsonwebtoken';
 import { db } from '../libs/db.js';
 
 export const authMiddleware = async (req, res, next) => {
     try {
-<<<<<<< HEAD
         const token = req.cookies.token;
-=======
-        const token = req.cookies.token || req.headers.authorization?.replace("Bearer ", "");
->>>>>>> b8e1e5f (models and auth completed)
         if (!token) {
             return res.status(401).json({ error: "Unauthorized access" });
         }
 
-<<<<<<< HEAD
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
         const user = await db.user.findUnique({
             where: { id: decoded.id },
-=======
-        const decoded = jwt.verify(token, process.env.JWT_SECRET)
-
-        const user = await db.user.findUnique({
-            where: {
-                id: decoded.id
-            }, 
->>>>>>> b8e1e5f (models and auth completed)
             select: {
                 id: true,
                 email: true,
                 name: true,
                 role: true,
-<<<<<<< HEAD
                 image: true,
                 username: true
             }
         });
 
         if (!user) {
-=======
-                image: true
-            }
-        })
-
-        if(!user) {
->>>>>>> b8e1e5f (models and auth completed)
             return res.status(404).json({ error: "Unauthorized access" });
         }
 
         req.user = user;
         next();
     } catch (error) {
-<<<<<<< HEAD
         console.error("Auth middleware error:", error.message);
         return res.status(500).json({ error: "Internal server error" });
     }
@@ -76,8 +55,3 @@ export const isAdmin = async (req, res, next) => {
         return res.status(500).json({ message: "Internal server error" });
     }
 };
-=======
-        throw new Error("Unauthorized access")
-    }
-}
->>>>>>> b8e1e5f (models and auth completed)

@@ -3,12 +3,8 @@
   "version": "1.0.0",
   "main": "src/index.js",
   "scripts": {
-<<<<<<< HEAD
     "dev": "nodemon src/index.js",
     "start": "node src/index.js"
-=======
-    "dev": "nodemon src/index.js"
->>>>>>> b8e1e5f (models and auth completed)
   },
   "keywords": [],
   "author": "Khan Shoaib",
@@ -16,7 +12,6 @@
   "type": "module",
   "description": "",
   "dependencies": {
-<<<<<<< HEAD
     "@azure-rest/ai-inference": "^1.0.0-beta.6",
     "@azure/core-auth": "^1.10.1",
     "@google/genai": "^1.1.0",
@@ -42,14 +37,5 @@
     "recharts": "^2.15.3",
     "resend": "^4.5.1",
     "socket.io": "^4.8.1"
-=======
-    "@prisma/client": "^6.7.0",
-    "bcryptjs": "^3.0.2",
-    "cookie-parser": "^1.4.7",
-    "dotenv": "^16.5.0",
-    "express": "^5.1.0",
-    "jsonwebtoken": "^9.0.2",
-    "prisma": "^6.7.0"
->>>>>>> b8e1e5f (models and auth completed)
   }
 }
