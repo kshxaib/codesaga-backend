@@ -1,5 +1,5 @@
 import express from "express";
-import dotenv from "dotenv";
+import { ENV } from "./libs/env.js";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import { createServer } from "http";
@@ -20,7 +20,6 @@ import contestRoutes from "./routes/contest.route.js";
 
 import initializeSocket from "./libs/socketHandler.js";
 
-dotenv.config();
 const app = express();
 
 const httpServer = createServer(app);
@@ -70,7 +69,7 @@ app.use((err, req, res, next) => {
   res.status(500).send("Something broke!");
 });
 
-const PORT = process.env.PORT || 8080;
+const PORT = ENV.PORT || 8080;
 httpServer.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
   console.log(`Socket.io is ready at ws://localhost:${PORT}/socket.io`);

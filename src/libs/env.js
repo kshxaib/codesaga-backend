@@ -19,6 +19,7 @@ export const ENV = {
     AI_API_KEY: process.env.AI_API_KEY,
     RESEND_API_KEY: process.env.RESEND_API_KEY,
     FRONTEND_URL: process.env.FRONTEND_URL,
+    JUDGE0_API_URL: process.env.JUDGE0_API_URL,
 
     AI_GUESS_THE_OUTPUT_API: process.env.AI_GUESS_THE_OUTPUT_API,
     AI_REGEX_RUSH_API: process.env.AI_REGEX_RUSH_API,
