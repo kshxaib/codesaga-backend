@@ -4,14 +4,14 @@ import {
   pollBatchResults,
   submitBatch,
 } from "../libs/judge0.lib.js";
-import {db} from "../libs/db.js";
+import { db } from "../libs/db.js";
 import { updateUserStreak } from "../libs/updateUserStreak.js";
 
 export const executeCode = async (req, res) => {
   try {
     const cleanedBody = cleanNullBytes(req.body);
     const { source_code, language_id, stdin, expected_outputs, problemId } = cleanedBody;
-    expected_outputs.forEach((output) => console.log(typeof(output)));
+    expected_outputs.forEach((output) => console.log(typeof (output)));
     const userId = req.user.id;
 
     if (!source_code || !language_id || !stdin || !expected_outputs) {
@@ -83,7 +83,7 @@ export const executeCode = async (req, res) => {
     if (allPassed) {
       console.log("✅ All test cases passed. Updating streak...");
       await updateUserStreak(userId);
-      await db.ProblemSolved.upsert({
+      await db.problemSolved.upsert({
         where: { userId_problemId: { userId, problemId } },
         update: {},
         create: { userId, problemId },

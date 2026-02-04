@@ -16,15 +16,15 @@ export const createProblem = async (req, res) => {
     tags,
     examples,
     constraints,
-    hints ,
-    testcases ,
-    codeSnippets ,
+    hints,
+    testcases,
+    codeSnippets,
     referenceSolutions,
     editorial = "",
-    askedIn ,
-    isPaid ,
+    askedIn,
+    isPaid,
     playlistName,
-    createNewPlaylist ,
+    createNewPlaylist,
     playlistDescription = "",
     price = 0,
   } = req.body;
@@ -49,7 +49,7 @@ export const createProblem = async (req, res) => {
       const submissions = testcases.map(({ input, output }) => ({
         source_code: solutionCode,
         language_id: languageId,
-        stdin: input ,
+        stdin: input,
         expected_output: output,
       }));
 
@@ -184,7 +184,7 @@ export const getAllProblems = async (req, res) => {
   try {
     const problems = await db.problem.findMany({
       where: {
-        isPaid: false, 
+        isPaid: false,
       },
       include: {
         solvedBy: {
@@ -235,120 +235,6 @@ export const getProblemById = async (req, res) => {
     });
   } catch (error) {
     return res.status(500).json({ message: "Error while fetching problem" });
-  }
-};
-
-export const updateProblem = async (req, res) => {
-  const { id } = req.params;
-  const cleanedBody = cleanNullBytes(req.body);
-
-  if (!id) {
-    return res.status(400).json({ message: "Problem ID is required" });
-  }
-
-  try {
-    const problem = await db.problem.findUnique({
-      where: {
-        id: id,
-      },
-    });
-
-    if (!problem) {
-      return res.status(404).json({ message: "Problem not found" });
-    }
-
-    if (problem.userId !== req.user.id) {
-      return res
-        .status(403)
-        .json({ message: "You are not authorized to update this problem" });
-    }
-
-    const {
-      title,
-      description,
-      difficulty,
-      tags,
-      examples,
-      constraints,
-      hints,
-      testcases,
-      codeSnippets,
-      editorial,
-      referenceSolutions,
-    } = cleanedBody;
-
-    if (
-      !description ||
-      !title ||
-      !difficulty ||
-      !tags ||
-      !examples ||
-      !constraints ||
-      !testcases ||
-      !codeSnippets ||
-      !referenceSolutions
-    ) {
-      return res.status(400).json({ message: "All fields are required" });
-    }
-
-    // Validate reference solutions with test cases
-    for (const [language, solutionCode] of Object.entries(referenceSolutions)) {
-      const languageId = getJudge0LangaugeId(language);
-
-      if (!languageId) {
-        return res
-          .status(400)
-          .json({ error: `Language ${language} is not supported` });
-      }
-
-      const submissions = testcases.map(({ input, output }) => ({
-        source_code: solutionCode,
-        language_id: languageId,
-        stdin: input,
-        expected_output: output,
-      }));
-
-      const submissionResult = await submitBatch(submissions);
-      const tokens = submissionResult.map((res) => res.token);
-      const results = await pollBatchResults(tokens);
-
-      for (let i = 0; i < results.length; i++) {
-        const result = results[i];
-        if (result.status.id !== 3) {
-          return res.status(400).json({
-            message: `Test case ${i + 1} failed for language ${language}`,
-            details: result,
-          });
-        }
-      }
-    }
-
-    const updatedProblem = await db.problem.update({
-      where: {
-        id: id,
-      },
-      data: {
-        title,
-        description,
-        difficulty,
-        tags,
-        examples,
-        constraints,
-        hints,
-        testcases,
-        codeSnippets,
-        referenceSolutions,
-      },
-    });
-
-    return res.status(200).json({
-      success: true,
-      message: "Problem updated successfully",
-      problem: updatedProblem,
-    });
-  } catch (error) {
-    console.error("Error updating problem:", error);
-    return res.status(500).json({ message: "Error while updating problem" });
   }
 };
 
@@ -490,7 +376,7 @@ export const getRecommendedProblems = async (req, res) => {
     let recommended = await db.problem.findMany({
       where: {
         AND: [
-          {isPaid: false},
+          { isPaid: false },
           { tags: { hasSome: uniqueTags } },
           { NOT: { solvedBy: { some: { userId: currentUserId } } } },
         ],
@@ -593,25 +479,44 @@ export const reactToProblem = async (req, res) => {
 };
 
 export const getRandomProblem = async (req, res) => {
-  try {
-    const totalProblems = await db.problem.count();
+  const userId = req.user.id;
 
-    if (totalProblems === 0) {
-      return res
-        .status(404)
-        .json({ success: false, message: "No problems available" });
+  try {
+    // Find IDs of problems solved by this user
+    const solvedProblemIds = await db.problemSolved.findMany({
+      where: { userId },
+      select: { problemId: true },
+    }).then(solved => solved.map(s => s.problemId));
+
+    // Count unsolved free problems
+    const unsolvedCount = await db.problem.count({
+      where: {
+        isPaid: false,
+        id: { notIn: solvedProblemIds },
+      },
+    });
+
+    if (unsolvedCount === 0) {
+      return res.status(200).json({
+        success: false,
+        message: "Amazing! You've solved all available problems."
+      });
     }
 
-    const randomIndex = Math.floor(Math.random() * totalProblems);
+    const randomIndex = Math.floor(Math.random() * unsolvedCount);
 
     const randomProblem = await db.problem.findFirst({
+      where: {
+        isPaid: false,
+        id: { notIn: solvedProblemIds },
+      },
       skip: randomIndex,
       take: 1,
     });
 
     return res.status(200).json({
       success: true,
-      message: "Random problem fetched successfully",
+      message: "Random unsolved problem fetched successfully",
       problem: randomProblem,
     });
   } catch (error) {

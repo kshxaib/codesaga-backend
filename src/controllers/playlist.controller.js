@@ -5,11 +5,11 @@ import { ENV } from "../libs/env.js";
 
 const razorpayInstance = new Razorpay({
   key_id: ENV.RAZORPAY_KEY_ID,
-  key_secret: ENV.RAZORPAY_KEY_SECRET,  
+  key_secret: ENV.RAZORPAY_KEY_SECRET,
 });
 
 export const createPlaylist = async (req, res) => {
-  const { name, description="", isPaid = false, price = 0 } = req.body;
+  const { name, description = "", isPaid = false, price = 0 } = req.body;
   if (!name) {
     return res.status(400).json({
       success: false,
@@ -74,7 +74,7 @@ export const getAllPlaylistsOfUser = async (req, res) => {
           include: {
             problem: {
               include: {
-                solvedBy: true, 
+                solvedBy: true,
               },
             },
           },
@@ -141,7 +141,7 @@ export const getPlaylistDetails = async (req, res) => {
             problem: true,
           },
         },
-        purchases: true, 
+        purchases: true,
       },
     });
 
@@ -176,115 +176,156 @@ export const getPlaylistDetails = async (req, res) => {
 };
 
 export const addProblemToPlaylist = async (req, res) => {
-    const { playlistId } = req.params;
-    const { problemIds } = req.body;
+  const { playlistId } = req.params;
+  const { problemIds } = req.body;
 
-    if (!playlistId || !Array.isArray(problemIds)) {
-        return res.status(400).json({ success: false, message: "Playlist ID and problem IDs are required" });
+  if (!playlistId || !Array.isArray(problemIds)) {
+    return res.status(400).json({ success: false, message: "Playlist ID and problem IDs are required" });
+  }
+
+  try {
+    const playlist = await db.playlist.findUnique({
+      where: { id: playlistId }
+    });
+
+    if (!playlist) {
+      return res.status(404).json({ success: false, message: "Playlist not found" });
     }
 
-    try {
-        const existing = await db.problemInPlaylist.findMany({
-            where: {
-                playlistId,
-                problemId: { in: problemIds }
-            }
-        });
-
-        const existingIds = existing.map(item => item.problemId);
-
-        const newProblemIds = problemIds.filter(id => !existingIds.includes(id));
-
-
-        if (newProblemIds.length === 0) {
-            return res.status(200).json({ success: true, message: "problems already exist in the playlist" });
-        }
-
-        await db.problemInPlaylist.createMany({
-            data: newProblemIds.map(problemId => ({
-                playlistId,
-                problemId
-            }))
-        });
-
-        return res.status(201).json({ success: true, message: "Problems added to playlist" });
-
-    } catch (error) {
-        console.error(error);
-        return res.status(500).json({ success: false, message: "Error while adding problems to playlist" });
+    // Authorization logic
+    if (playlist.isPaid) {
+      if (req.user.role !== "ADMIN") {
+        return res.status(403).json({ success: false, message: "Only admins can modify paid playlists" });
+      }
+    } else {
+      if (playlist.userId !== req.user.id) {
+        return res.status(403).json({ success: false, message: "You are not authorized to modify this playlist" });
+      }
     }
+
+    const existing = await db.problemInPlaylist.findMany({
+      where: {
+        playlistId,
+        problemId: { in: problemIds }
+      }
+    });
+
+    const existingIds = existing.map(item => item.problemId);
+    const newProblemIds = problemIds.filter(id => !existingIds.includes(id));
+
+    if (newProblemIds.length === 0) {
+      return res.status(200).json({ success: true, message: "Problems already exist in the playlist" });
+    }
+
+    await db.problemInPlaylist.createMany({
+      data: newProblemIds.map(problemId => ({
+        playlistId,
+        problemId
+      }))
+    });
+
+    return res.status(201).json({ success: true, message: "Problems added to playlist" });
+
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ success: false, message: "Error while adding problems to playlist" });
+  }
 };
 
 export const removeProblemFromPlaylist = async (req, res) => {
-    const { playlistId } = req.params;
-    const { problemIds } = req.body;
+  const { playlistId } = req.params;
+  const { problemIds } = req.body;
 
-    if (!playlistId || !Array.isArray(problemIds)) {
-        return res.status(400).json({ 
-            success: false, 
-            message: "Playlist ID and problem IDs array are required" 
-        });
+  if (!playlistId || !Array.isArray(problemIds)) {
+    return res.status(400).json({
+      success: false,
+      message: "Playlist ID and problem IDs array are required"
+    });
+  }
+
+  try {
+    const playlist = await db.playlist.findUnique({
+      where: { id: playlistId }
+    });
+
+    if (!playlist) {
+      return res.status(404).json({
+        success: false,
+        message: "Playlist not found"
+      });
     }
 
-    try {
-        const playlist = await db.playlist.findUnique({
-            where: { id: playlistId }
-        });
-        
-        if (!playlist) {
-            return res.status(404).json({ 
-                success: false, 
-                message: "Playlist not found" 
-            });
-        }
-
-        if (playlist.userId !== req.user.id) {
-            return res.status(403).json({ 
-                success: false, 
-                message: "You are not authorized to modify this playlist" 
-            });
-        }
-
-        const result = await db.problemInPlaylist.deleteMany({
-            where: {
-                playlistId,
-                problemId: { in: problemIds }
-            }
-        });
-
-        return res.status(200).json({ 
-            success: true, 
-            message: `${result.count} problem(s) removed from playlist`,
-            count: result.count
-        });
-
-    } catch (error) {
-        console.error("Error removing problems:", error);
-        return res.status(500).json({ 
-            success: false, 
-            message: "Error while removing problems from playlist",
-            error: error.message 
-        });
+    // Authorization logic
+    if (playlist.isPaid) {
+      if (req.user.role !== "ADMIN") {
+        return res.status(403).json({ success: false, message: "Only admins can modify paid playlists" });
+      }
+    } else {
+      if (playlist.userId !== req.user.id) {
+        return res.status(403).json({ success: false, message: "You are not authorized to modify this playlist" });
+      }
     }
+
+    const result = await db.problemInPlaylist.deleteMany({
+      where: {
+        playlistId,
+        problemId: { in: problemIds }
+      }
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: `${result.count} problem(s) removed from playlist`,
+      count: result.count
+    });
+
+  } catch (error) {
+    console.error("Error removing problems:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Error while removing problems from playlist",
+      error: error.message
+    });
+  }
 };
 
 export const deletePlaylist = async (req, res) => {
-    const {playlistId} = req.params
-    if(!playlistId) {
-        return res.status(400).json({ success: false, message: "Playlist ID is required" })
+  const { playlistId } = req.params;
+  if (!playlistId) {
+    return res.status(400).json({ success: false, message: "Playlist ID is required" });
+  }
+
+  try {
+    const playlist = await db.playlist.findUnique({
+      where: { id: playlistId }
+    });
+
+    if (!playlist) {
+      return res.status(404).json({ success: false, message: "Playlist not found" });
     }
 
-    try {
-        const deletePlaylist = await db.playlist.delete({
-            where: {
-                id: playlistId,
-            }
-        })
-
-        return res.status(200).json({ success: true, message: `Playlist ${deletePlaylist.name} deleted successfully`, deletePlaylist })
-    } catch (error) {
-        return res.status(500).json({ success: false, message: "Error while deleting playlist" })
+    // Authorization logic
+    if (playlist.isPaid) {
+      if (req.user.role !== "ADMIN") {
+        return res.status(403).json({ success: false, message: "Only admins can delete paid playlists" });
+      }
+    } else {
+      if (playlist.userId !== req.user.id) {
+        return res.status(403).json({ success: false, message: "You are not authorized to delete this playlist" });
+      }
     }
+
+    const deletedPlaylist = await db.playlist.delete({
+      where: {
+        id: playlistId,
+      }
+    });
+
+    return res.status(200).json({ success: true, message: `Playlist ${deletedPlaylist.name} deleted successfully`, deletedPlaylist });
+  } catch (error) {
+    console.error("Error deleting playlist:", error);
+    return res.status(500).json({ success: false, message: "Error while deleting playlist" });
+  }
 };
 
 export const getUnpurchasedPaidPlaylists = async (req, res) => {
@@ -307,7 +348,7 @@ export const getUnpurchasedPaidPlaylists = async (req, res) => {
       },
       include: {
         problems: true,
-        purchases: true,  
+        purchases: true,
       },
       orderBy: {
         createdAt: "desc",
@@ -333,7 +374,7 @@ export const initiatePlaylistPurchase = async (req, res) => {
 
   try {
     const userId = req.user.id;
-    
+
     // Check if playlist exists and is paid
     const playlist = await db.playlist.findUnique({
       where: { id: playlistId }
@@ -379,8 +420,8 @@ export const initiatePlaylistPurchase = async (req, res) => {
 
   } catch (error) {
     console.error("Error initiating payment:", error);
-    return res.status(500).json({ 
-      success: false, 
+    return res.status(500).json({
+      success: false,
       message: "Error while initiating payment",
     });
   }
@@ -446,14 +487,14 @@ export const verifyPlaylistPurchase = async (req, res) => {
     console.log("Purchase successful", purchase);
 
     return res.status(200).json({
-  success: true,
-  message: `${purchase.playlist.name} playlist purchased successfully`,
-  purchase: {
-    id: purchase.id,
-    playlist: purchase.playlist,
-    paymentId: purchase.paymentId,
-  },
-});
+      success: true,
+      message: `${purchase.playlist.name} playlist purchased successfully`,
+      purchase: {
+        id: purchase.id,
+        playlist: purchase.playlist,
+        paymentId: purchase.paymentId,
+      },
+    });
 
   } catch (error) {
     console.error("Payment verification error:", error);
@@ -499,7 +540,7 @@ export const getPurchaseHistory = async (req, res) => {
       message: "Error while fetching purchase history"
     });
   }
-}; 
+};
 
 export const getLatestUnpurchasedPaidPlaylists = async (req, res) => {
   try {
